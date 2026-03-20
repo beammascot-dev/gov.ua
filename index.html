@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Єдиний державний реєстр</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: -apple-system, sans-serif;
+  background: #eef2f7;
+}
+
+/* заставка */
+.splash {
+  position: fixed;
+  inset: 0;
+  background: #0d1b2a;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  z-index: 999;
+  font-size: 18px;
+}
+
+.loader {
+  margin-top: 15px;
+  width: 40px;
+  height: 40px;
+  border: 4px solid #ffffff30;
+  border-top: 4px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* основной UI */
+.wrapper { padding: 15px; display: none; }
+
+.card {
+  background: white;
+  border-radius: 15px;
+  padding: 20px;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+}
+
+.title { font-size: 18px; font-weight: bold; }
+.sub { font-size: 13px; color: gray; margin-bottom: 15px; }
+
+input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+
+.buttons { display: flex; gap: 10px; }
+
+button {
+  flex: 1;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  font-size: 15px;
+}
+
+.check { background: #2d6cdf; color: white; }
+.clear { background: #e0e0e0; }
+
+.loading { display: none; margin-top: 15px; font-size: 14px; }
+.step { margin-bottom: 6px; color: gray; opacity: 0; animation: fade 0.4s forwards; }
+
+@keyframes fade {
+  to { opacity: 1; }
+}
+
+.result { margin-top: 15px; display: none; }
+
+.status {
+  padding: 10px;
+  border-radius: 10px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.red { background: #ffe5e5; color: red; }
+.green { background: #e5ffe8; color: green; }
+
+.info { margin-top: 10px; font-size: 14px; }
+</style>
+</head>
+
+<body>
+
+<!-- заставка -->
+<div class="splash" id="splash">
+  <div>Підключення до державних реєстрів...</div>
+  <div class="loader"></div>
+</div>
+
+<div class="wrapper" id="app">
+  <div class="card">
+
+    <div class="title">Єдиний державний реєстр</div>
+    <div class="sub">Перевірка громадян у базі ТЦК / МВС</div>
+
+    <input id="name" placeholder="Введіть ПІБ">
+
+    <div class="buttons">
+      <button class="check" onclick="check()">Перевірити</button>
+      <button class="clear" onclick="clearData()">Очистити</button>
+    </div>
+
+    <div class="loading" id="loading">
+      <div id="steps"></div>
+    </div>
+
+    <div class="result" id="result"></div>
+
+  </div>
+</div>
+
+<script>
+const cities = ["Київ", "Харків", "Львів", "Одеса", "Дніпро"];
+
+window.onload = () => {
+  setTimeout(() => {
+    document.getElementById("splash").style.display = "none";
+    document.getElementById("app").style.display = "block";
+  }, 2500);
+
+  const saved = localStorage.getItem("name");
+  if (saved) document.getElementById("name").value = saved;
+};
+
+/* только ФИО */
+document.getElementById("name").addEventListener("input", function() {
+  this.value = this.value.replace(/[^a-zA-Zа-яА-ЯёЁіІїЇєЄ\s]/g, "");
+});
+
+function fakeSteps(callback) {
+  const steps = [
+    "Підключення до реєстру...",
+    "Перевірка бази МВС...",
+    "Перевірка бази ТЦК...",
+    "Аналіз даних...",
+    "Формування відповіді..."
+  ];
+
+  let i = 0;
+  const el = document.getElementById("steps");
+  el.innerHTML = "";
+
+  const interval = setInterval(() => {
+    if (i < steps.length) {
+      const div = document.createElement("div");
+      div.className = "step";
+      div.innerText = "✔ " + steps[i];
+      el.appendChild(div);
+      i++;
+    } else {
+      clearInterval(interval);
+      callback();
+    }
+  }, 900);
+}
+
+function check() {
+  const name = document.getElementById("name").value.trim();
+  const loading = document.getElementById("loading");
+  const result = document.getElementById("result");
+
+  if (!name || name.split(" ").length < 2) {
+    alert("Введіть коректне ПІБ");
+    return;
+  }
+
+  localStorage.setItem("name", name);
+
+  result.style.display = "none";
+  loading.style.display = "block";
+
+  fakeSteps(() => {
+    loading.style.display = "none";
+    result.style.display = "block";
+
+    const isWanted = Math.random() < 0.75;
+    const city = cities[Math.floor(Math.random() * cities.length)];
+
+    const caseId = "UA-" + Math.floor(100000 + Math.random()*900000);
+    const uid = Math.random().toString(36).substring(2, 10).toUpperCase();
+    const risk = Math.floor(Math.random()*100);
+    const chance = Math.floor(70 + Math.random()*30);
+    const now = new Date().toLocaleString();
+
+    const statuses = [
+      "Порушення обліку",
+      "Неявка за повісткою",
+      "Уточнення даних"
+    ];
+    const status = statuses[Math.floor(Math.random()*statuses.length)];
+
+    if (isWanted) {
+      result.innerHTML = `
+        <div class="status red">❌ В РОЗШУКУ</div>
+        <div class="info">
+          <p><b>Особа:</b> ${name}</p>
+          <p><b>Регіон:</b> ${city}</p>
+          <p><b>Статус:</b> ${status}</p>
+          <p><b>Номер справи:</b> ${caseId}</p>
+          <p><b>ID запису:</b> ${uid}</p>
+          <p><b>Рівень ризику:</b> ${risk}%</p>
+          <p><b>Ймовірність виявлення:</b> ${chance}%</p>
+          <p><b>Дата перевірки:</b> ${now}</p>
+          <p><b>Штраф:</b> ${12000 + Math.floor(Math.random()*5000)} грн</p>
+        </div>
+      `;
+    } else {
+      result.innerHTML = `
+        <div class="status green">✅ НЕ В РОЗШУКУ</div>
+        <div class="info">
+          <p><b>Особа:</b> ${name}</p>
+          <p><b>Регіон:</b> ${city}</p>
+          <p><b>ID запису:</b> ${uid}</p>
+          <p><b>Дата перевірки:</b> ${now}</p>
+          <p>Дані відсутні у реєстрах</p>
+        </div>
+      `;
+    }
+
+  });
+}
+
+function clearData() {
+  localStorage.removeItem("name");
+  document.getElementById("name").value = "";
+  document.getElementById("result").style.display = "none";
+}
+</script>
+
+</body>
+</html>
